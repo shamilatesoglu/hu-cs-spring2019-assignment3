@@ -122,6 +122,7 @@ public class GameFlow {
                 break;
             case FREE_PARKING_SQUARE:
                 player.setInFreeParking(true);
+                printCurrentTurn(player, String.format("%s is in Free Parking", player.getName()));
                 break;
         }
     }
