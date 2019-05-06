@@ -1,6 +1,7 @@
 import game.Game;
 import game.GameBuilder;
 import game.GameFlow;
+import game.exceptions.GameOver;
 import game.exceptions.OutOfMoneyException;
 import org.json.simple.parser.ParseException;
 
@@ -16,7 +17,9 @@ public class Main {
             Game game = new GameBuilder(PROPERTY_FILENAME, LIST_FILENAME).build();
             GameFlow gameFlow = new GameFlow(game, COMMANDS_FILENAME);
             gameFlow.startGame();
-        } catch (IOException | ParseException e) {
+        }  catch (GameOver gameOver) {
+            System.out.print(Game.getInstance());
+        } catch (IOException | ParseException | ArrayIndexOutOfBoundsException e) {
             e.printStackTrace();
         }
     }

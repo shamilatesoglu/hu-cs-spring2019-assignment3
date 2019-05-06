@@ -18,12 +18,14 @@ public class Player extends Person {
         mOwnedProperties = new ArrayList<>();
     }
 
-    public void incrementDaysInJail() {
+    public boolean incrementDaysInJail() {
         mDaysInJail++;
         if (mDaysInJail > 3) {
             setInJail(false);
             mDaysInJail = 0;
+            return true;
         }
+        return false;
     }
 
     public boolean isInFreeParking() {
@@ -42,17 +44,15 @@ public class Player extends Person {
         mPlaceOnBoard = placeOnBoard;
     }
 
-    public void advance(int dice) {
-        if ((getPlaceOnBoard() + dice) > 40 && !isInJail()) {
+    public void advance(int dice, boolean forward) {
+        if (((getPlaceOnBoard() + dice) > 40 || (forward && dice < 0)) && !isInJail())
             requestMoneyFrom(Game.getInstance().getBanker(), 200);
-        }
-        setPlaceOnBoard((getPlaceOnBoard() + dice) % 40);
+        setPlaceOnBoard((getPlaceOnBoard() + dice == 40) ? 40 : Math.floorMod(getPlaceOnBoard() + dice, 40));
     }
 
     public boolean isInJail() {
         return mInJail;
     }
-
 
     public int getDaysInJail() {
         return mDaysInJail;
@@ -67,11 +67,9 @@ public class Player extends Person {
     }
 
     public void buyProperty(Property property) {
-        if (getMoney() >= property.getCost()) {
-            Game.getInstance().getBanker().requestMoneyFrom(this, property.getCost());
-            property.setOwner(this);
-            mOwnedProperties.add(property);
-        }
+        Game.getInstance().getBanker().requestMoneyFrom(this, property.getCost());
+        property.setOwner(this);
+        mOwnedProperties.add(property);
     }
 
     private String getPropertiesString() {

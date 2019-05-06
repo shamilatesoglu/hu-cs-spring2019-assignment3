@@ -2,6 +2,7 @@ package game;
 
 import game.board.Card;
 import game.board.Square;
+import game.exceptions.GameOver;
 import game.exceptions.OutOfMoneyException;
 import game.player.Banker;
 import game.player.Player;
@@ -44,17 +45,10 @@ public class GameFlow {
         if (!file.exists()) file.createNewFile();
         System.setOut(new PrintStream("myoutput.txt"));
         BufferedReader bufferedReader = new BufferedReader(new FileReader(mCommandsFilename));
-
         String line;
         while ((line = bufferedReader.readLine()) != null) {
-            try {
-                if (line.length() > 0)
-                    this.executeCommand(line);
-            } catch (OutOfMoneyException ome) {
-                //
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
+            if (line.length() > 0)
+                this.executeCommand(line);
         }
 
         System.out.print(mGame);
@@ -79,29 +73,32 @@ public class GameFlow {
         Player player = mGame.getPlayer(playerName);
         setLastDice(dice);
         setLastPlayer(player);
-        if (!player.isInJail() && !player.isInFreeParking()) {
-            player.advance(dice);
-            play(player);
-        } else if (player.isInJail()) {
-            player.incrementDaysInJail();
+
+        if (!player.isInJail() || player.incrementDaysInJail()) {
+            player.advance(dice, true);
+            try {
+                play(player, "");
+            } catch (OutOfMoneyException e) {
+                printCurrentTurn(player, e.getMessage());
+                throw new GameOver(e.getCause());
+            }
+        } else
             printCurrentTurn(player, String.format("%s is in jail (count=%d)", player.getName(), player.getDaysInJail()));
-        } else {
-            player.setInFreeParking(false);
-        }
     }
 
-    private void play(Player player) {
+    private void play(Player player, String preOp) {
         Square square = mGame.getBoard().getSquare(player.getPlaceOnBoard());
         switch (square.getType()) {
             case PROPERTY_SQUARE:
                 Property property = mGame.getPropertyByName(square.getName());
                 if (property.getOwner() == null) {
                     player.buyProperty(property);
-                    printCurrentTurn(player, String.format("%s bought %s", player.getName(), property.getName()));
-                } else {
+                    printCurrentTurn(player, preOp + String.format("%s bought %s", player.getName(), property.getName()));
+                } else if (!property.getOwner().equals(player)) {
                     property.getOwner().requestMoneyFrom(player, property.getRent());
-                    printCurrentTurn(player, String.format("%s paid rent for %s", player.getName(), property.getName()));
-                }
+                    printCurrentTurn(player, preOp + String.format("%s paid rent for %s", player.getName(), property.getName()));
+                } else
+                    printCurrentTurn(player, preOp + String.format("%s has %s", player.getName(), property.getName()));
                 break;
             case ACTION_SQUARE:
                 Card card = mGame.getBoard().getCard(square.getName().equals("Chance") ? Card.Type.CHANCE : Card.Type.COMMUNITY_CHEST);
@@ -109,37 +106,41 @@ public class GameFlow {
                 break;
             case TAX_SQUARE:
                 getBanker().requestMoneyFrom(player, 100);
-                printCurrentTurn(player, String.format("%s paid tax", player.getName()));
+                printCurrentTurn(player, preOp + String.format("%s paid tax", player.getName()));
                 break;
             case JAIL_SQUARE:
                 player.setInJail(true);
-                printCurrentTurn(player, String.format("%s went to jail", player.getName()));
+                printCurrentTurn(player, preOp + String.format("%s went to jail", player.getName()));
                 break;
             case GO_TO_JAIL_SQUARE:
-                player.advance(20);
                 player.setInJail(true);
-                printCurrentTurn(player, String.format("%s went to jail", player.getName()));
+                player.advance(20, true);
+                printCurrentTurn(player, preOp + String.format("%s went to jail", player.getName()));
                 break;
             case FREE_PARKING_SQUARE:
                 player.setInFreeParking(true);
-                printCurrentTurn(player, String.format("%s is in Free Parking", player.getName()));
+                printCurrentTurn(player, preOp + String.format("%s is in Free Parking", player.getName()));
+                player.setInFreeParking(false);
+                break;
+            case GO_SQUARE:
+                printCurrentTurn(player, player.getName());
                 break;
         }
     }
 
     private void playCard(Card card, Player player) {
-        switch (card.getContent()) {
+        switch (card.getContent().trim()) {
             case "Advance to Go (Collect $200)":
-                player.advance(41 - player.getPlaceOnBoard());
-                printCurrentTurn(player, String.format("%s advanced to go (collect 200)", player.getName()));
+                player.advance(41 - player.getPlaceOnBoard(), true);
+                printCurrentTurn(player, String.format("%s drew Card [Advance to Go (Collect 200)]", player.getName()));
                 break;
             case "Advance to Leicester Square":
-                player.advance(27 - player.getPlaceOnBoard());
-                play(player);
+                player.advance(27 - player.getPlaceOnBoard(), true);
+                play(player, String.format("%s drew Chance Card [Advance to Leicester Square], ", player.getName()));
                 break;
             case "Go back 3 spaces":
-                player.advance(-3);
-                play(player);
+                player.advance(-3, false);
+                play(player, String.format("%s drew Chance Card [Go back 3 spaces], ", player.getName()));
                 break;
             case "Pay poor tax of $15":
                 getBanker().requestMoneyFrom(player, 15);

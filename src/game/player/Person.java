@@ -28,8 +28,9 @@ public abstract class Person {
     }
 
     public void decreaseMoney(double amount) throws OutOfMoneyException {
+        if (getMoney() - amount < 0)
+            throw new OutOfMoneyException(getName());
         setMoney(getMoney() - amount);
-        if (getMoney() < 0) throw new OutOfMoneyException(getName());
     }
 
     public void increaseMoney(double amount) {

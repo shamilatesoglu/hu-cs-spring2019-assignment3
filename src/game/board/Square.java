@@ -38,4 +38,9 @@ public class Square {
     public enum Type {
         PROPERTY_SQUARE, ACTION_SQUARE, TAX_SQUARE, GO_SQUARE, GO_TO_JAIL_SQUARE, FREE_PARKING_SQUARE, JAIL_SQUARE
     }
+
+    @Override
+    public String toString() {
+        return String.format("%d. %s", getPlace(), getName());
+    }
 }

@@ -21,4 +21,8 @@ public class Card {
         CHANCE, COMMUNITY_CHEST
     }
 
+    @Override
+    public String toString() {
+        return String.format("%s [%s]", getContent(), getType());
+    }
 }
