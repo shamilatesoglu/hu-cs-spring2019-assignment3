@@ -41,9 +41,9 @@ public class GameFlow {
     @SuppressWarnings("ResultOfMethodCallIgnored")
     public void
     startGame() throws IOException {
-        File file = new File("myoutput.txt");
+        File file = new File("output.txt");
         if (!file.exists()) file.createNewFile();
-        System.setOut(new PrintStream("myoutput.txt"));
+        System.setOut(new PrintStream("output.txt"));
         BufferedReader bufferedReader = new BufferedReader(new FileReader(mCommandsFilename));
         String line;
         while ((line = bufferedReader.readLine()) != null) {
